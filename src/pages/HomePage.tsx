@@ -23,7 +23,10 @@ const useMissionStore = create<MissionStore>((set) => ({
   setMissions: (missions) => set({ missions }),
   setSelectedMissionId: (id) => set({ selectedMissionId: id }),
 }));
-const TelemetryChart = ({ data }) => (
+interface TelemetryChartProps {
+  data: { name: string; value: number; unit: string }[];
+}
+const TelemetryChart = ({ data }: TelemetryChartProps) => (
   <ResponsiveContainer width="100%" height={100}>
     <RechartsBarChart data={data}>
       <XAxis dataKey="name" hide />
@@ -55,11 +58,14 @@ export function HomePage() {
         const fetchedMissions = await api<Launch[]>('/api/launches');
         const sortedMissions = fetchedMissions.sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime());
         setMissions(sortedMissions);
-        const upcoming = sortedMissions.find(m => m.status === 'Upcoming' && new Date(m.launchDate) > new Date());
-        if (upcoming) {
-          setSelectedMissionId(upcoming.id);
-        } else if (sortedMissions.length > 0) {
-          setSelectedMissionId(sortedMissions[0].id);
+        // Only set selected mission if one isn't already set
+        if (!useMissionStore.getState().selectedMissionId) {
+          const upcoming = sortedMissions.find(m => m.status === 'Upcoming' && new Date(m.launchDate) > new Date());
+          if (upcoming) {
+            setSelectedMissionId(upcoming.id);
+          } else if (sortedMissions.length > 0) {
+            setSelectedMissionId(sortedMissions[0].id);
+          }
         }
       } catch (error) {
         toast.error('Failed to fetch missions.');
@@ -70,7 +76,12 @@ export function HomePage() {
   }, [setMissions, setSelectedMissionId]);
   useEffect(() => {
     async function fetchLaunchDetails() {
-      if (!selectedMissionId) return;
+      if (!selectedMissionId) {
+        if (missions.length > 0) {
+          setIsLoading(false);
+        }
+        return;
+      }
       setIsLoading(true);
       try {
         const launchData = await api<Launch>(`/api/launches/${selectedMissionId}`);
@@ -84,7 +95,7 @@ export function HomePage() {
       }
     }
     fetchLaunchDetails();
-  }, [selectedMissionId]);
+  }, [selectedMissionId, missions.length]);
   useInterval(() => {
     if (currentLaunch?.status === 'In-Flight') {
       setTelemetry(prev => {
@@ -113,15 +124,17 @@ export function HomePage() {
   const renderDashboard = () => {
     if (isLoading || !currentLaunch) {
       return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 grid-rows-3 gap-4 p-4 h-full">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:grid-rows-3 gap-4 p-4 h-full">
           <Skeleton className="lg:col-span-2 lg:row-span-2" />
+          <Skeleton className="lg:col-span-2" />
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
           <Skeleton />
           <Skeleton />
           <Skeleton />
           <Skeleton />
           <Skeleton className="md:col-span-2" />
-          <Skeleton />
-          <Skeleton />
         </div>
       );
     }
@@ -133,7 +146,7 @@ export function HomePage() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 grid-rows-1 lg:grid-rows-3 gap-4 p-4 h-full"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 lg:grid-rows-3 gap-4 p-4 h-full"
         >
           <DataCard title="Mission Status" className="lg:col-span-2 lg:row-span-2 bg-slate-900/80">
             <div className="h-full flex flex-col justify-between">
