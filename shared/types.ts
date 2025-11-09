@@ -40,6 +40,12 @@ export interface LaunchSite {
   name: string;
   location: string;
 }
+export interface Weather {
+  condition: string; // e.g., "Clear", "Cloudy"
+  temperature: number; // in Celsius
+  windSpeed: number; // in km/h
+  visibility: string; // e.g., "16 km"
+}
 export interface Launch {
   id: string;
   missionName: string;
@@ -51,4 +57,5 @@ export interface Launch {
   destinationOrbit: string;
   liveStreamUrl?: string;
   telemetry: Telemetry;
+  weather: Weather;
 }

@@ -43,6 +43,12 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         fuel: 100,
         pressure: 101.3,
       },
+      weather: {
+        condition: 'TBD',
+        temperature: 20,
+        windSpeed: 10,
+        visibility: '16 km',
+      },
     };
     const created = await LaunchEntity.create(c.env, newLaunch);
     return ok(c, created);
@@ -54,6 +60,26 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return notFound(c, 'Launch not found');
     }
     return ok(c, await launch.getState());
+  });
+  app.put('/api/launches/:id', async (c) => {
+    const { id } = c.req.param();
+    const launchEntity = new LaunchEntity(c.env, id);
+    if (!(await launchEntity.exists())) {
+      return notFound(c, 'Launch not found');
+    }
+    const body = await c.req.json<Partial<Launch>>();
+    // Ensure ID is not changed
+    delete body.id;
+    await launchEntity.patch(body);
+    return ok(c, await launchEntity.getState());
+  });
+  app.delete('/api/launches/:id', async (c) => {
+    const { id } = c.req.param();
+    const deleted = await LaunchEntity.delete(c.env, id);
+    if (!deleted) {
+      return notFound(c, 'Launch not found');
+    }
+    return ok(c, { id, deleted: true });
   });
   // USERS
   app.get('/api/users', async (c) => {

@@ -46,6 +46,7 @@ export class LaunchEntity extends IndexedEntity<Launch> {
     payload: "",
     destinationOrbit: "",
     telemetry: { altitude: 0, speed: 0, downrange: 0, signalStrength: 0, temperature: 0, fuel: 0, pressure: 0 },
+    weather: { condition: 'TBD', temperature: 0, windSpeed: 0, visibility: 'N/A' },
   };
   static seedData = MOCK_LAUNCHES;
 }

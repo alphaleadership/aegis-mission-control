@@ -39,6 +39,12 @@ export const MOCK_LAUNCHES: Launch[] = [
       fuel: 100,
       pressure: 101.3,
     },
+    weather: {
+      condition: 'Clear',
+      temperature: 24,
+      windSpeed: 12,
+      visibility: '16 km',
+    },
   },
   {
     id: 'aegis-002',
@@ -66,6 +72,12 @@ export const MOCK_LAUNCHES: Launch[] = [
       temperature: 24,
       fuel: 100,
       pressure: 101.3,
+    },
+    weather: {
+      condition: 'Few Clouds',
+      temperature: 26,
+      windSpeed: 15,
+      visibility: '16 km',
     },
   },
   {
@@ -95,6 +107,12 @@ export const MOCK_LAUNCHES: Launch[] = [
       fuel: 0,
       pressure: 0,
     },
+    weather: {
+      condition: 'Clear',
+      temperature: 21,
+      windSpeed: 8,
+      visibility: '16 km',
+    },
   },
   {
     id: 'aegis-004',
@@ -123,6 +141,12 @@ export const MOCK_LAUNCHES: Launch[] = [
       fuel: 100,
       pressure: 101.3,
     },
+    weather: {
+      condition: 'Scattered Clouds',
+      temperature: 27,
+      windSpeed: 20,
+      visibility: '14 km',
+    },
   },
   {
     id: 'aegis-005',
@@ -150,6 +174,12 @@ export const MOCK_LAUNCHES: Launch[] = [
       temperature: 800,
       fuel: 25,
       pressure: 500,
+    },
+    weather: {
+      condition: 'Thunderstorms',
+      temperature: 28,
+      windSpeed: 35,
+      visibility: '8 km',
     },
   },
 ];
