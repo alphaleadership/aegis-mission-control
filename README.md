@@ -2,7 +2,7 @@
 
 A visually stunning, NASA-style mission control dashboard for tracking rocket launches with detailed, real-time statistics.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/alphaleadership/aegis-mission-control)
 
 Aegis Mission Control is a sophisticated, visually stunning web application designed to emulate a NASA-style mission control center. It provides a comprehensive dashboard for tracking upcoming, live, and past rocket launches. The interface is information-dense yet clean, featuring a modular grid of data panels displaying critical launch statistics.
 
@@ -94,7 +94,7 @@ This command will build the application and deploy it to your Cloudflare account
 
 Alternatively, you can deploy directly from your GitHub repository using the button below.
 
-[cloudflarebutton]
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/alphaleadership/aegis-mission-control)
 
 ## License
 
