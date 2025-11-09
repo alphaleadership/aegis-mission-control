@@ -28,6 +28,7 @@ export const MOCK_LAUNCHES: Launch[] = [
       location: 'Cape Canaveral, FL',
     },
     payload: '52 Starlink satellites',
+    destinationOrbit: 'Low Earth Orbit',
     liveStreamUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     telemetry: {
       altitude: 0,
@@ -56,6 +57,7 @@ export const MOCK_LAUNCHES: Launch[] = [
       location: 'Kennedy Space Center, FL',
     },
     payload: 'Orion Crew Module & Lunar Lander',
+    destinationOrbit: 'Lunar Orbit',
     telemetry: {
       altitude: 0,
       speed: 0,
@@ -83,6 +85,7 @@ export const MOCK_LAUNCHES: Launch[] = [
       location: 'Kennedy Space Center, FL',
     },
     payload: 'Dragon 2 spacecraft with supplies',
+    destinationOrbit: 'Low Earth Orbit',
     telemetry: {
       altitude: 420,
       speed: 27600,
@@ -110,6 +113,7 @@ export const MOCK_LAUNCHES: Launch[] = [
       location: 'Kennedy Space Center, FL',
     },
     payload: 'Europa Clipper spacecraft',
+    destinationOrbit: 'Heliocentric Orbit',
     telemetry: {
       altitude: 0,
       speed: 0,
@@ -137,6 +141,7 @@ export const MOCK_LAUNCHES: Launch[] = [
       location: 'Cape Canaveral, FL',
     },
     payload: 'Boilerplate Mass Simulator',
+    destinationOrbit: 'Suborbital',
     telemetry: {
       altitude: 50,
       speed: 1200,

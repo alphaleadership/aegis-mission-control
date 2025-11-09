@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Env } from './core-utils';
 import { UserEntity, ChatBoardEntity, LaunchEntity } from "./entities";
 import { ok, bad, notFound, isStr } from './core-utils';
+import { Launch } from "@shared/types";
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/test', (c) => c.json({ success: true, data: { name: 'CF Workers Demo' }}));
   // LAUNCHES
@@ -9,6 +10,42 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     await LaunchEntity.ensureSeed(c.env);
     const { items } = await LaunchEntity.list(c.env);
     return ok(c, items);
+  });
+  app.post('/api/launches', async (c) => {
+    const body = await c.req.json<Partial<Launch>>();
+    if (!body.missionName || !body.launchDate || !body.payload || !body.rocket?.name || !body.destinationOrbit) {
+      return bad(c, 'Missing required mission fields');
+    }
+    const newLaunch: Launch = {
+      id: `aegis-${Date.now()}`,
+      missionName: body.missionName,
+      launchDate: body.launchDate,
+      payload: body.payload,
+      destinationOrbit: body.destinationOrbit,
+      status: 'Upcoming',
+      rocket: {
+        name: body.rocket.name,
+        height: body.rocket.height || 'N/A',
+        diameter: body.rocket.diameter || 'N/A',
+        mass: body.rocket.mass || 'N/A',
+        payloadToLEO: body.rocket.payloadToLEO || 'N/A',
+      },
+      launchSite: {
+        name: body.launchSite?.name || 'TBD',
+        location: body.launchSite?.location || 'TBD',
+      },
+      telemetry: {
+        altitude: 0,
+        speed: 0,
+        downrange: 0,
+        signalStrength: 100,
+        temperature: 20,
+        fuel: 100,
+        pressure: 101.3,
+      },
+    };
+    const created = await LaunchEntity.create(c.env, newLaunch);
+    return ok(c, created);
   });
   app.get('/api/launches/:id', async (c) => {
     const { id } = c.req.param();

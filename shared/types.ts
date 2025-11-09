@@ -48,6 +48,7 @@ export interface Launch {
   rocket: RocketSpecs;
   launchSite: LaunchSite;
   payload: string;
+  destinationOrbit: string;
   liveStreamUrl?: string;
   telemetry: Telemetry;
 }

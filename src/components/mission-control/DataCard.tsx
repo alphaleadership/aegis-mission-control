@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 interface DataCardProps {
   title: string;
-  value: string | number;
+  value?: string | number;
   unit?: string;
   className?: string;
   valueClassName?: string;

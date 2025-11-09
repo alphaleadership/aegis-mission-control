@@ -44,6 +44,7 @@ export class LaunchEntity extends IndexedEntity<Launch> {
     rocket: { name: "", height: "", diameter: "", mass: "", payloadToLEO: "" },
     launchSite: { name: "", location: "" },
     payload: "",
+    destinationOrbit: "",
     telemetry: { altitude: 0, speed: 0, downrange: 0, signalStrength: 0, temperature: 0, fuel: 0, pressure: 0 },
   };
   static seedData = MOCK_LAUNCHES;
