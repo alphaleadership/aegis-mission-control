@@ -1,148 +1,183 @@
-// Home page of the app, Currently a demo page for demonstration.
-// Please rewrite this file to implement your own logic. Do not replace or delete it, simply rewrite this HomePage.tsx file.
-import { useEffect } from 'react'
-import { Sparkles } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ThemeToggle'
-import { Toaster, toast } from '@/components/ui/sonner'
-import { create } from 'zustand'
-import { useShallow } from 'zustand/react/shallow'
-import { AppLayout } from '@/components/layout/AppLayout'
-
-// Timer store: independent slice with a clear, minimal API, for demonstration
-type TimerState = {
-  isRunning: boolean;
-  elapsedMs: number;
-  start: () => void;
-  pause: () => void;
-  reset: () => void;
-  tick: (deltaMs: number) => void;
+import React, { useEffect, useState, useMemo } from 'react';
+import { create } from 'zustand';
+import { AnimatePresence, motion } from 'framer-motion';
+import { BarChart, Thermometer, Wind, Gauge, Signal, Fuel, ArrowDownUp } from 'lucide-react';
+import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { api } from '@/lib/api-client';
+import { Launch, Telemetry } from '@shared/types';
+import { MissionList } from '@/components/mission-control/MissionList';
+import { DataCard } from '@/components/mission-control/DataCard';
+import { Countdown } from '@/components/mission-control/Countdown';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useInterval } from '@/hooks/use-interval';
+import { Toaster, toast } from '@/components/ui/sonner';
+interface MissionStore {
+  missions: Launch[];
+  selectedMissionId: string | null;
+  setMissions: (missions: Launch[]) => void;
+  setSelectedMissionId: (id: string) => void;
 }
-
-const useTimerStore = create<TimerState>((set) => ({
-  isRunning: false,
-  elapsedMs: 0,
-  start: () => set({ isRunning: true }),
-  pause: () => set({ isRunning: false }),
-  reset: () => set({ elapsedMs: 0, isRunning: false }),
-  tick: (deltaMs) => set((s) => ({ elapsedMs: s.elapsedMs + deltaMs })),
-}))
-
-// Counter store: separate slice to showcase multiple stores without coupling
-type CounterState = {
-  count: number;
-  inc: () => void;
-  reset: () => void;
-}
-
-const useCounterStore = create<CounterState>((set) => ({
-  count: 0,
-  inc: () => set((s) => ({ count: s.count + 1 })),
-  reset: () => set({ count: 0 }),
-}))
-
-function formatDuration(ms: number): string {
-  const total = Math.max(0, Math.floor(ms / 1000))
-  const m = Math.floor(total / 60)
-  const s = total % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
+const useMissionStore = create<MissionStore>((set) => ({
+  missions: [],
+  selectedMissionId: null,
+  setMissions: (missions) => set({ missions }),
+  setSelectedMissionId: (id) => set({ selectedMissionId: id }),
+}));
+const TelemetryChart = ({ data }) => (
+  <ResponsiveContainer width="100%" height={100}>
+    <RechartsBarChart data={data}>
+      <XAxis dataKey="name" hide />
+      <YAxis hide />
+      <Tooltip
+        cursor={{ fill: 'rgba(52, 152, 219, 0.1)' }}
+        contentStyle={{
+          background: 'rgba(10, 10, 20, 0.8)',
+          borderColor: '#3498db',
+          color: '#f8fafc',
+          borderRadius: '0.5rem',
+        }}
+      />
+      <Bar dataKey="value" fill="#3498db" barSize={10} />
+    </RechartsBarChart>
+  </ResponsiveContainer>
+);
 export function HomePage() {
-  // Select only what is needed to avoid unnecessary re-renders
-  const { isRunning, elapsedMs } = useTimerStore(
-    useShallow((s) => ({ isRunning: s.isRunning, elapsedMs: s.elapsedMs })),
-  )
-  const start = useTimerStore((s) => s.start)
-  const pause = useTimerStore((s) => s.pause)
-  const resetTimer = useTimerStore((s) => s.reset)
-  const count = useCounterStore((s) => s.count)
-  const inc = useCounterStore((s) => s.inc)
-  const resetCount = useCounterStore((s) => s.reset)
-
-  // Drive the timer only while running; avoid update-depth issues with a scoped RAF
+  const missions = useMissionStore(s => s.missions);
+  const setMissions = useMissionStore(s => s.setMissions);
+  const selectedMissionId = useMissionStore(s => s.selectedMissionId);
+  const setSelectedMissionId = useMissionStore(s => s.setSelectedMissionId);
+  const [currentLaunch, setCurrentLaunch] = useState<Launch | null>(null);
+  const [telemetry, setTelemetry] = useState<Telemetry | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
-    if (!isRunning) return
-    let raf = 0
-    let last = performance.now()
-    const loop = () => {
-      const now = performance.now()
-      const delta = now - last
-      last = now
-      // Read store API directly to keep effect deps minimal and stable
-      useTimerStore.getState().tick(delta)
-      raf = requestAnimationFrame(loop)
+    async function fetchMissions() {
+      try {
+        const fetchedMissions = await api<Launch[]>('/api/launches');
+        const sortedMissions = fetchedMissions.sort((a, b) => new Date(b.launchDate).getTime() - new Date(a.launchDate).getTime());
+        setMissions(sortedMissions);
+        const upcoming = sortedMissions.find(m => m.status === 'Upcoming' && new Date(m.launchDate) > new Date());
+        if (upcoming) {
+          setSelectedMissionId(upcoming.id);
+        } else if (sortedMissions.length > 0) {
+          setSelectedMissionId(sortedMissions[0].id);
+        }
+      } catch (error) {
+        toast.error('Failed to fetch missions.');
+        console.error(error);
+      }
     }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
-  }, [isRunning])
-
-  const onPleaseWait = () => {
-    inc()
-    if (!isRunning) {
-      start()
-      toast.success('Building your app…', {
-        description: 'Hang tight, we\'re setting everything up.',
-      })
-    } else {
-      pause()
-      toast.info('Taking a short pause', {
-        description: 'We\'ll continue shortly.',
-      })
+    fetchMissions();
+  }, [setMissions, setSelectedMissionId]);
+  useEffect(() => {
+    async function fetchLaunchDetails() {
+      if (!selectedMissionId) return;
+      setIsLoading(true);
+      try {
+        const launchData = await api<Launch>(`/api/launches/${selectedMissionId}`);
+        setCurrentLaunch(launchData);
+        setTelemetry(launchData.telemetry);
+      } catch (error) {
+        toast.error('Failed to fetch launch details.');
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }
-
-  const formatted = formatDuration(elapsedMs)
-
-  return (
-    <AppLayout>
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4 overflow-hidden relative">
-        <ThemeToggle />
-        <div className="absolute inset-0 bg-gradient-rainbow opacity-10 dark:opacity-20 pointer-events-none" />
-        <div className="text-center space-y-8 relative z-10 animate-fade-in">
-          <div className="flex justify-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-primary flex items-center justify-center shadow-primary floating">
-              <Sparkles className="w-8 h-8 text-white rotating" />
-            </div>
-          </div>
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-balance leading-tight">
-            Creating your <span className="text-gradient">app</span>
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-xl mx-auto text-pretty">
-            Your application would be ready soon.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Button 
-              size="lg"
-              onClick={onPleaseWait}
-              className="btn-gradient px-8 py-4 text-lg font-semibold hover:-translate-y-0.5 transition-all duration-200"
-              aria-live="polite"
-            >
-              Please Wait
-            </Button>
-          </div>
-          <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground">
-            <div>
-              Time elapsed: <span className="font-medium tabular-nums text-foreground">{formatted}</span>
-            </div>
-            <div>
-              Coins: <span className="font-medium tabular-nums text-foreground">{count}</span>
-            </div>
-          </div>
-          <div className="flex justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => { resetTimer(); resetCount(); toast('Reset complete') }}>
-              Reset
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => { inc(); toast('Coin added') }}>
-              Add Coin
-            </Button>
-          </div>
+    fetchLaunchDetails();
+  }, [selectedMissionId]);
+  useInterval(() => {
+    if (currentLaunch?.status === 'In-Flight') {
+      setTelemetry(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          altitude: prev.altitude + 5 * (Math.random() + 0.5),
+          speed: prev.speed + 100 * (Math.random() + 0.5),
+          downrange: prev.downrange + 20 * (Math.random() + 0.5),
+          signalStrength: Math.max(90, prev.signalStrength - Math.random() * 0.1),
+          temperature: prev.temperature + Math.random() * 2,
+          fuel: Math.max(0, prev.fuel - Math.random() * 0.2),
+          pressure: Math.max(0, prev.pressure - Math.random() * 1),
+        };
+      });
+    }
+  }, 1000);
+  const telemetryChartData = useMemo(() => {
+    if (!telemetry) return [];
+    return [
+      { name: 'Altitude', value: telemetry.altitude, unit: 'km' },
+      { name: 'Speed', value: telemetry.speed, unit: 'km/h' },
+      { name: 'Downrange', value: telemetry.downrange, unit: 'km' },
+    ];
+  }, [telemetry]);
+  const renderDashboard = () => {
+    if (isLoading || !currentLaunch) {
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 grid-rows-3 gap-4 p-4 h-full">
+          <Skeleton className="lg:col-span-2 lg:row-span-2" />
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+          <Skeleton />
+          <Skeleton className="md:col-span-2" />
+          <Skeleton />
+          <Skeleton />
         </div>
-        <footer className="absolute bottom-8 text-center text-muted-foreground/80">
-          <p>Powered by Cloudflare</p>
-        </footer>
-        <Toaster richColors closeButton />
+      );
+    }
+    return (
+      <AnimatePresence>
+        <motion.div
+          key={currentLaunch.id}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 grid-rows-1 lg:grid-rows-3 gap-4 p-4 h-full"
+        >
+          <DataCard title="Mission Status" className="lg:col-span-2 lg:row-span-2 bg-slate-900/80">
+            <div className="h-full flex flex-col justify-between">
+              <div>
+                <h1 className="text-4xl lg:text-5xl font-bold text-slate-50">{currentLaunch.missionName}</h1>
+                <p className="text-lg text-cyan-400">{currentLaunch.payload}</p>
+              </div>
+              <Countdown launchDate={currentLaunch.launchDate} />
+            </div>
+          </DataCard>
+          <DataCard title="Telemetry Overview" value="" className="lg:col-span-2">
+            <TelemetryChart data={telemetryChartData} />
+          </DataCard>
+          <DataCard title="Altitude" value={telemetry?.altitude.toFixed(2) || 0} unit="km" valueClassName="text-cyan-400" />
+          <DataCard title="Speed" value={telemetry?.speed.toFixed(2) || 0} unit="km/h" valueClassName="text-cyan-400" />
+          <DataCard title="Downrange" value={telemetry?.downrange.toFixed(2) || 0} unit="km" valueClassName="text-cyan-400" />
+          <DataCard title="Signal" value={telemetry?.signalStrength.toFixed(1) || 0} unit="%" />
+          <DataCard title="Fuel" value={telemetry?.fuel.toFixed(1) || 0} unit="%" />
+          <DataCard title="Pressure" value={telemetry?.pressure.toFixed(2) || 0} unit="kPa" />
+          <DataCard title="Temperature" value={telemetry?.temperature.toFixed(1) || 0} unit="°C" />
+          <DataCard title="Rocket" className="md:col-span-2">
+            <div className="space-y-2 text-slate-200">
+              <p><strong>Name:</strong> {currentLaunch.rocket.name}</p>
+              <p><strong>Height:</strong> {currentLaunch.rocket.height}</p>
+              <p><strong>Mass:</strong> {currentLaunch.rocket.mass}</p>
+            </div>
+          </DataCard>
+        </motion.div>
+      </AnimatePresence>
+    );
+  };
+  return (
+    <div className="h-screen w-screen bg-slate-950 text-slate-50 flex overflow-hidden font-sans bg-grid">
+      <div className="w-64 flex-shrink-0">
+        <MissionList
+          missions={missions}
+          selectedMissionId={selectedMissionId}
+          onSelectMission={setSelectedMissionId}
+        />
       </div>
-    </AppLayout>
-  )
+      <main className="flex-1 overflow-y-auto">
+        {renderDashboard()}
+      </main>
+      <Toaster theme="dark" richColors />
+    </div>
+  );
 }
